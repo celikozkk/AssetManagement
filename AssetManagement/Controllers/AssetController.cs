@@ -22,4 +22,17 @@ public class AssetController : ControllerBase
         var assets = await _context.Assets.ToListAsync();
         return Ok(assets);
     }
+
+    // GET: api/assets/{id}
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetAssetById(int id)
+    {
+        var asset = await _context.Assets.FindAsync(id);
+        if (asset == null)
+        {
+            return NotFound("Asset not found.");
+        }
+        
+        return Ok(asset);
+    }
 }
