@@ -1,11 +1,5 @@
-using System.Text;
 using AssetManagement.Data;
-using AssetManagement.Models;
-using AssetManagement.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,7 +11,6 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<TradingContext>(options =>
     options.UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=TradingDb;Trusted_Connection=True;"));
-builder.Services.AddScoped<PositionService>();
 
 var app = builder.Build();
 
