@@ -50,7 +50,7 @@ public class PositionController : ControllerBase
             return NotFound("Asset not found.");
         }
 
-        decimal totalCost = positionDto.EntryPrice * positionDto.Amount;
+        decimal totalCost = asset.LastPrice * positionCreateDto.Amount;
         if (account.Balance < totalCost)
         {
             return BadRequest("Insufficient funds.");
@@ -111,7 +111,7 @@ public class PositionController : ControllerBase
             return BadRequest("You can't sell more than you own.");
         }
 
-        decimal totalReturn = closeDto.ClosePrice * closeDto.Amount;
+        decimal totalReturn = asset.LastPrice * closeDto.Amount;
         account.Balance += totalReturn;
 
         position.Amount -= closeDto.Amount;
