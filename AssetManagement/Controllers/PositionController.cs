@@ -1,6 +1,7 @@
 ﻿using AssetManagement.Data;
 using AssetManagement.Dtos;
 using AssetManagement.Models;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,15 +12,17 @@ namespace AssetManagement.Controllers;
 public class PositionController : ControllerBase
 {
     private readonly TradingContext _context;
+    private readonly IMapper _mapper;
 
-    public PositionController(TradingContext context)
+    public PositionController(TradingContext context, IMapper mapper)
     {
         _context = context;
+        _mapper = mapper;
     }
 
     // GET: api/positions/{id}
     [HttpGet("{id}")]
-    public async Task<ActionResult<Position>> GetPositionById(int id)
+    public async Task<ActionResult<PositionDto>> GetPositionById(int id)
     {
         var position = await _context.Positions.FindAsync(id);
 
@@ -28,23 +31,23 @@ public class PositionController : ControllerBase
             return NotFound($"Position with ID {id} not found.");
         }
 
-        return position;
+        return Ok(_mapper.Map<PositionDto>(position));
     }
 
     // POST: api/positions/open
     [HttpPost("open")]
-    public async Task<ActionResult<Position>> OpenPosition(PositionCreateDto positionDto)
+    public async Task<ActionResult<PositionDto>> OpenPosition(PositionCreateDto positionCreateDto)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var account = await _context.Accounts.FindAsync(positionDto.AccountId);
+        var account = await _context.Accounts.FindAsync(positionCreateDto.AccountId);
         if (account == null)
         {
             return NotFound("Account not found.");
         }
 
-        var asset = await _context.Assets.FindAsync(positionDto.AssetId);
+        var asset = await _context.Assets.FindAsync(positionCreateDto.AssetId);
         if (asset == null) 
         {
             return NotFound("Asset not found.");
@@ -59,34 +62,40 @@ public class PositionController : ControllerBase
         account.Balance -= totalCost;
 
         var existingPosition = await _context.Positions.FirstOrDefaultAsync(p =>
-            p.AccountId == positionDto.AccountId &&
-            p.AssetId == positionDto.AssetId);
+            p.AccountId == positionCreateDto.AccountId &&
+            p.AssetId == positionCreateDto.AssetId);
 
+        Position returnedPosition;
+        
         if (existingPosition != null)
         {
-            existingPosition.Amount += positionDto.Amount;
+            // existing position updated
+            existingPosition.Amount += positionCreateDto.Amount;
+            returnedPosition = existingPosition;
         }
         else
         {
+            // new position opened
             var position = new Position
             {
-                AccountId = positionDto.AccountId,
-                AssetId = positionDto.AssetId,
-                Amount = positionDto.Amount,
-                EntryPrice = positionDto.EntryPrice,
+                AccountId = positionCreateDto.AccountId,
+                AssetId = positionCreateDto.AssetId,
+                Amount = positionCreateDto.Amount,
+                EntryPrice = asset.LastPrice,
                 EntryDate = DateTime.UtcNow
-            }; 
-            _context.Positions.Add(position);  
+            };
+            _context.Positions.Add(position);
+            returnedPosition = position;
         }
 
         await _context.SaveChangesAsync();
 
-        return Ok();
+        return Ok(_mapper.Map<PositionDto>(returnedPosition));
     }
     
     // POST: api/positions/{id}/close
     [HttpPost("{id}/close")]
-    public async Task<ActionResult<Position>> ClosePosition(int id, PositionCloseDto closeDto)
+    public async Task<ActionResult<PositionDto>> ClosePosition(int id, PositionCloseDto closeDto)
     {
         var position = await _context.Positions.FindAsync(id);
         if (position == null)
@@ -121,6 +130,6 @@ public class PositionController : ControllerBase
         }
 
         await _context.SaveChangesAsync();
-        return Ok();
+        return Ok(_mapper.Map<PositionDto>(position));
     }
 }
