@@ -91,7 +91,7 @@ public class PositionController : ControllerBase
         var position = await _context.Positions.FindAsync(id);
         if (position == null)
         {
-            return NotFound();
+            return NotFound("Position not found.");
         }
 
         var account = await _context.Accounts.FindAsync(position.AccountId);
