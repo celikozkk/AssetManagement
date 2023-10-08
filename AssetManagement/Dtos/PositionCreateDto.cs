@@ -14,8 +14,4 @@ public class PositionCreateDto
     [Required]
     [Range(0, double.MaxValue, ErrorMessage = "Amount should be positive.")]
     public decimal Amount { get; set; }
-    
-    [Required]
-    [Range(0, double.MaxValue, ErrorMessage = "EntryPrice should be positive.")]
-    public decimal EntryPrice { get; set; }
 }
