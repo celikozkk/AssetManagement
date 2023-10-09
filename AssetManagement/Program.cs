@@ -1,4 +1,5 @@
 using System.Text;
+using AssetManagement.Binance;
 using AssetManagement.Data;
 using AssetManagement.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -66,6 +67,9 @@ builder.Services.AddSwaggerGen(c =>
     };
     c.AddSecurityRequirement(securityRequirement);
 });
+
+builder.Services.Configure<BinanceSettings>(builder.Configuration.GetSection("BinanceSettings"));
+builder.Services.AddHostedService<BinancePriceUpdateService>();
 
 var app = builder.Build();
 
