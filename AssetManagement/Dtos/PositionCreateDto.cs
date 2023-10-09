@@ -6,9 +6,6 @@ namespace AssetManagement.Dtos;
 public class PositionCreateDto
 {
     [Required]
-    public int AccountId { get; set; }
-    
-    [Required]
     public int AssetId { get; set; }
     
     [Required]

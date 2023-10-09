@@ -1,12 +1,15 @@
-﻿using AssetManagement.Data;
+﻿using System.Security.Claims;
+using AssetManagement.Data;
 using AssetManagement.Dtos;
 using AssetManagement.Models;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace AssetManagement.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/positions")]
 public class PositionController : ControllerBase
@@ -19,16 +22,37 @@ public class PositionController : ControllerBase
         _context = context;
         _mapper = mapper;
     }
+    
+    // GET: api/positions
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<PositionDto>>> GetPositionsByAccountId()
+    {
+        var accountId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var account = await _context.Accounts.FindAsync(accountId);
+        if (account == null)
+        {
+            return NotFound("Account not found.");
+        }
+
+        var positions = await _context.Positions.Where(p => p.AccountId == account.Id).ToListAsync();
+
+        return Ok(_mapper.Map<List<PositionDto>>(positions));
+    }
 
     // GET: api/positions/{id}
     [HttpGet("{id}")]
     public async Task<ActionResult<PositionDto>> GetPositionById(int id)
     {
         var position = await _context.Positions.FindAsync(id);
-
         if (position == null)
         {
             return NotFound($"Position with ID {id} not found.");
+        }
+        
+        var accountId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (position.AccountId != accountId)
+        {
+            return Unauthorized("You do not have permission to access this position.");
         }
 
         return Ok(_mapper.Map<PositionDto>(position));
@@ -41,10 +65,11 @@ public class PositionController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var account = await _context.Accounts.FindAsync(positionCreateDto.AccountId);
+        var accountId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var account = await _context.Accounts.FindAsync(accountId);
         if (account == null)
         {
-            return NotFound("Account not found.");
+            return NotFound($"Account not found. {accountId}");
         }
 
         var asset = await _context.Assets.FindAsync(positionCreateDto.AssetId);
@@ -59,26 +84,28 @@ public class PositionController : ControllerBase
             return BadRequest("Insufficient funds.");
         }
 
-        account.Balance -= totalCost;
-
         var existingPosition = await _context.Positions.FirstOrDefaultAsync(p =>
-            p.AccountId == positionCreateDto.AccountId &&
+            p.AccountId == accountId &&
             p.AssetId == positionCreateDto.AssetId);
 
         Position returnedPosition;
         
         if (existingPosition != null)
         {
-            // existing position updated
+            // updating existing position
+            if (existingPosition.AccountId != accountId)
+            {
+                return Unauthorized("You do not have permission to update this position.");
+            }
             existingPosition.Amount += positionCreateDto.Amount;
             returnedPosition = existingPosition;
         }
         else
         {
-            // new position opened
+            // opening new position
             var position = new Position
             {
-                AccountId = positionCreateDto.AccountId,
+                AccountId = accountId,
                 AssetId = positionCreateDto.AssetId,
                 Amount = positionCreateDto.Amount,
                 EntryPrice = asset.LastPrice,
@@ -88,11 +115,13 @@ public class PositionController : ControllerBase
             returnedPosition = position;
         }
 
+        account.Balance -= totalCost;
         await _context.SaveChangesAsync();
 
         return Ok(_mapper.Map<PositionDto>(returnedPosition));
     }
     
+    // todo: add ClosePositionDto read DTO to display sell price
     // POST: api/positions/{id}/close
     [HttpPost("{id}/close")]
     public async Task<ActionResult<PositionDto>> ClosePosition(int id, PositionCloseDto closeDto)
@@ -103,7 +132,13 @@ public class PositionController : ControllerBase
             return NotFound("Position not found.");
         }
 
-        var account = await _context.Accounts.FindAsync(position.AccountId);
+        var accountId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (position.AccountId != accountId)
+        {
+            return Unauthorized("You do not have permission to close this position.");
+        }
+        
+        var account = await _context.Accounts.FindAsync(accountId);
         if (account == null)
         {
             return NotFound("Account not found.");

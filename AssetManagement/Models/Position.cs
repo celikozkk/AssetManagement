@@ -4,7 +4,7 @@
 public class Position
 {
     public int Id { get; set; }
-    public int AccountId { get; set; }
+    public string AccountId { get; set; }
     public int AssetId { get; set; }
     public decimal Amount { get; set; }
     public decimal EntryPrice { get; set; }

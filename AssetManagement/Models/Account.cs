@@ -1,9 +1,9 @@
-﻿namespace AssetManagement.Models;
+﻿using Microsoft.AspNetCore.Identity;
 
-public class Account
+namespace AssetManagement.Models;
+
+public class Account : IdentityUser
 {
-    public int Id { get; set; }
-    public string Email { get; set; }
     public string FirstName { get; set; }
     public string LastName { get; set; }
     public decimal Balance { get; set; } = 10000m;
