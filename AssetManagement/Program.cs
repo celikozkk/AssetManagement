@@ -75,6 +75,8 @@ builder.Services.AddTransient<IEmailService, MockEmailService>();
 builder.Services.Configure<NotificationSettings>(builder.Configuration.GetSection("NotificationSettings"));
 builder.Services.AddHostedService<NotificationService>();
 
+builder.Services.AddTransient<DataSeeder>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -91,5 +93,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+using var scope = app.Services.CreateScope();
+var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
+seeder.SeedData();
 
 app.Run();

@@ -49,6 +49,10 @@ public class BinancePriceUpdateService : BackgroundService
         var context = scope.ServiceProvider.GetRequiredService<TradingContext>();
 
         var symbols = context.Assets.Select(a => $"\"{a.Symbol}USDT\"").ToList();
+
+        if (symbols.Count == 0)
+            return;
+        
         var symbolsQueryString = string.Join(",", symbols);
         var encodedSymbols = System.Net.WebUtility.UrlEncode($"[{symbolsQueryString}]");
 
