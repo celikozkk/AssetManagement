@@ -2,6 +2,7 @@ using System.Text;
 using AssetManagement.Binance;
 using AssetManagement.Data;
 using AssetManagement.Models;
+using AssetManagement.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -70,6 +71,10 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.Configure<BinanceSettings>(builder.Configuration.GetSection("BinanceSettings"));
 builder.Services.AddHostedService<BinancePriceUpdateService>();
+
+builder.Services.AddTransient<IEmailService, MockEmailService>();
+builder.Services.Configure<NotificationSettings>(builder.Configuration.GetSection("NotificationSettings"));
+builder.Services.AddHostedService<NotificationService>();
 
 var app = builder.Build();
 
