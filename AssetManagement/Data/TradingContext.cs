@@ -1,9 +1,10 @@
 ﻿using AssetManagement.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace AssetManagement.Data;
 
-public class TradingContext : DbContext
+public class TradingContext : IdentityDbContext<Account>
 {
     public TradingContext(DbContextOptions<TradingContext> options) : base(options)
     {
