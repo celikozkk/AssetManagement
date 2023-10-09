@@ -2,7 +2,7 @@
 using AssetManagement.Data;
 using Microsoft.Extensions.Options;
 
-namespace AssetManagement.Binance;
+namespace AssetManagement.Services;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -11,26 +11,39 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-public class BinancePriceUpdateService : IHostedService, IDisposable
+public class BinancePriceUpdateService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
-    private Timer _timer;
+    private readonly TimeSpan _updateInterval;
     private readonly BinanceSettings _binanceSettings;
+    private readonly ILogger<BinancePriceUpdateService> _logger;
 
-    public BinancePriceUpdateService(IServiceProvider serviceProvider, IOptions<BinanceSettings> binanceSettings)
+    public BinancePriceUpdateService(IServiceProvider serviceProvider, IOptions<BinanceSettings> binanceSettings, ILogger<BinancePriceUpdateService> logger)
     {
         _serviceProvider = serviceProvider;
         _binanceSettings = binanceSettings.Value;
+        _updateInterval = TimeSpan.FromSeconds(_binanceSettings.UpdateIntervalSeconds);
+        _logger = logger;
     }
-
-    public Task StartAsync(CancellationToken cancellationToken)
+    
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _timer = new Timer(UpdatePrices, null, TimeSpan.Zero,
-            TimeSpan.FromSeconds(_binanceSettings.UpdateIntervalSeconds));
-        return Task.CompletedTask;
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                await UpdatePrices();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while updating prices from Binance.");
+            }
+
+            await Task.Delay(_updateInterval, stoppingToken);
+        }
     }
 
-    private async void UpdatePrices(object state)
+    private async Task UpdatePrices()
     {
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TradingContext>();
@@ -56,17 +69,6 @@ public class BinancePriceUpdateService : IHostedService, IDisposable
         }
 
         await context.SaveChangesAsync();
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        _timer?.Change(Timeout.Infinite, 0);
-        return Task.CompletedTask;
-    }
-
-    public void Dispose()
-    {
-        _timer?.Dispose();
     }
 }
 

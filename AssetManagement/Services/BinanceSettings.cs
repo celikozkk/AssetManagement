@@ -1,4 +1,4 @@
-﻿namespace AssetManagement.Binance;
+﻿namespace AssetManagement.Services;
 
 public class BinanceSettings
 {
